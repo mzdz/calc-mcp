@@ -1,4 +1,5 @@
 # 计算器 MCP 服务器
+[![smithery badge](https://smithery.ai/badge/@mzdz/calc-mcp)](https://smithery.ai/server/@mzdz/calc-mcp)
 
 这是一个使用 [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/python-sdk) 开发的计算器服务器，提供基本的算术运算功能。
 
@@ -21,6 +22,15 @@
 
 ## 安装步骤
 
+### Installing via Smithery
+
+To install 计算器 MCP 服务器 for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@mzdz/calc-mcp):
+
+```bash
+npx -y @smithery/cli install @mzdz/calc-mcp --client claude
+```
+
+### Manual Installation
 1. 克隆或下载此仓库
 2. 安装依赖项：
 
