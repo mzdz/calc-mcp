@@ -131,13 +131,16 @@ def evaluate_expression(expression: str) -> float:
     抛出:
         ValueError: 当表达式无效或包含不安全代码时
     """
+    # 保存原始表达式用于显示
+    original_expression = expression
+    
+    # 替换常见的数学常量（在安全检查之前）
+    expression = expression.replace("pi", str(math.pi))
+    expression = expression.replace("e", str(math.e))
+    
     # 安全检查 - 只允许基本的数学表达式
     if not is_safe_expression(expression):
         raise ValueError("无效或不安全的表达式")
-    
-    # 替换常见的数学常量
-    expression = expression.replace("pi", str(math.pi))
-    expression = expression.replace("e", str(math.e))
     
     # 计算表达式
     try:
@@ -145,7 +148,7 @@ def evaluate_expression(expression: str) -> float:
         result = eval(expression, {"__builtins__": {}}, math_globals())
         save_to_history({
             "operation": "evaluate",
-            "expression": expression,
+            "expression": original_expression,  # 保存原始表达式用于显示
             "result": result
         })
         return result
@@ -154,9 +157,65 @@ def evaluate_expression(expression: str) -> float:
 
 def is_safe_expression(expression: str) -> bool:
     """检查表达式是否安全，只允许基本的数学运算符和函数"""
-    # 只允许数字、运算符和一些基本的数学函数
-    allowed_pattern = r'^[\d\s\+\-\*\/\(\)\.\,\^\%]+$'
-    return bool(re.match(allowed_pattern, expression))
+    # 保存原始表达式用于危险模式检查
+    original_expression = expression
+    
+    # 替换数学常量后的表达式
+    temp_expression = expression.replace("pi", str(math.pi)).replace("e", str(math.e))
+    
+    # 允许数字、运算符、小数点、空格、括号、基本数学符号和字母（用于pi和e以及函数名）
+    allowed_pattern = r'^[\d\s\+\-\*\/\(\)\.\,\%\^a-zA-Z_]+$'
+    
+    # 检查原始表达式是否包含允许的字符
+    if not re.match(allowed_pattern, original_expression):
+        return False
+    
+    # 定义允许的数学函数
+    allowed_functions = {
+        'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2',
+        'sinh', 'cosh', 'tanh', 'log', 'log10', 'ln', 'exp',
+        'sqrt', 'abs', 'pow', 'ceil', 'floor', 'fabs', 'fmod',
+        'degrees', 'radians', 'hypot'
+    }
+    
+    # 检查函数调用
+    function_calls = re.findall(r'([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', original_expression)
+    for func_name in function_calls:
+        if func_name.lower() not in allowed_functions:
+            return False
+    
+    # 检查是否只包含允许的数学常量（除了函数名）
+    temp_for_constants = original_expression
+    
+    # 移除函数调用
+    temp_for_constants = re.sub(r'[a-zA-Z_][a-zA-Z0-9_]*\s*\(', '(', temp_for_constants)
+    
+    # 移除数学常量
+    for const in ['pi', 'e']:
+        temp_for_constants = temp_for_constants.replace(const, '')
+    
+    # 剩下的应该只包含数字和基本运算符
+    basic_pattern = r'^[\d\s\+\-\*\/\(\)\.\,\%\^]+$'
+    if not re.match(basic_pattern, temp_for_constants):
+        return False
+    
+    # 额外的安全检查：确保不包含危险的模式
+    dangerous_patterns = [
+        r'__\w+__',  # 防止访问特殊方法
+        r'import\s+',  # 防止import语句
+        r'exec\s*\(',  # 防止exec调用
+        r'eval\s*\(',  # 防止嵌套eval调用
+        r'open\s*\(',  # 防止文件操作
+        r'input\s*\(',  # 防止输入函数
+        r'print\s*\(',  # 防止print函数
+        r'file\s*\(',  # 防止文件操作
+    ]
+    
+    for pattern in dangerous_patterns:
+        if re.search(pattern, original_expression, re.IGNORECASE):
+            return False
+    
+    return True
 
 def math_globals() -> Dict[str, Any]:
     """创建用于表达式计算的安全数学函数全局字典"""
@@ -172,9 +231,11 @@ def math_globals() -> Dict[str, Any]:
         if hasattr(math, k):
             safe_dict[k] = getattr(math, k)
     
-    # 添加一些常量
+    # 添加一些常量和别名
     safe_dict['pi'] = math.pi
     safe_dict['e'] = math.e
+    safe_dict['ln'] = math.log  # 自然对数别名
+    safe_dict['abs'] = abs  # 绝对值函数
     
     return safe_dict
 
@@ -194,8 +255,9 @@ def save_to_history(data: Dict[str, Any]) -> None:
     if len(calculation_history) > 20:
         calculation_history.pop(0)
     
-    # 发送资源更新通知
-    mcp.notify_resource_changed("calculator://history")
+    # 发送资源更新通知（如果支持的话）
+    if hasattr(mcp, 'notify_resource_changed'):
+        mcp.notify_resource_changed("calculator://history")
 
 @mcp.resource("calculator://help")
 def help_resource() -> str:
