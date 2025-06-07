@@ -1,5 +1,5 @@
 # 计算器 MCP 服务器
-[![smithery badge](https://smithery.ai/badge/@mzdz/calc-mcp)](https://smithery.ai/server/@mzdz/calc-mcp)
+[![smithery badge](https://smithery.ai/badge/@mzdz/calc-mcp-server)](https://smithery.ai/server/@mzdz/calc-mcp-server)
 
 这是一个使用 [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol/python-sdk) 开发的计算器服务器，提供基本的算术运算功能。
 
